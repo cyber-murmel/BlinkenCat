@@ -3,11 +3,8 @@ AVRDUDE_PROGRAMMER ?= stk500v2
 PORT ?= /dev/ttyUSB0
 
 AVRCC ?= avr-gcc
-AVRCXX ?= avr-g++
 AVRFLASH ?= avrdude
-AVRNM ?= avr-nm
 AVROBJCOPY ?= avr-objcopy
-AVROBJDUMP ?= avr-objdump
 
 MCU_FLAGS = -mmcu=${MCU} -DF_CPU=8000000UL
 
@@ -20,7 +17,6 @@ ifeq (${LANG},DE)
 endif
 
 CFLAGS += ${SHARED_FLAGS} -std=c99
-CXXFLAGS += ${SHARED_FLAGS} -std=c++11 -fno-rtti -fno-exceptions
 
 ASFLAGS += ${MCU_FLAGS} -wA,--warn
 LDFLAGS += -Wl,--gc-sections
@@ -33,7 +29,6 @@ AVRFLAGS += -P ${PORT}
 HEADERS  = $(wildcard src/*.h)
 ASFILES  = $(wildcard src/*.S)
 CFILES   = $(wildcard src/*.c)
-CXXFILES = $(wildcard src/*.cc)
 OBJECTS  = ${CFILES:src/%.c=build/%.o} ${CXXFILES:src/%.cc=build/%.o} ${ASFILES:src/%.S=build/%.o}
 
 all: build build/main.elf
@@ -44,18 +39,11 @@ build:
 build/%.hex: build/%.elf
 	${AVROBJCOPY} -O ihex -R .eeprom $< $@
 
-build/%.eep: build/%.elf
-	${AVROBJCOPY} -j .eeprom --set-section-flags=.eeprom="alloc,load" \
-	--change-section-lma .eeprom=0 -O ihex $< $@
-
-build/%.o: src/%.cc ${HEADERS}
-	${AVRCXX} ${CXXFLAGS} -o $@ $< -c -Wl,-Map=main.map,--cref
-
 build/%.o: src/%.c ${HEADERS}
 	${AVRCC} ${CFLAGS} -o $@ $< -c -Wl,-Map=main.map,--cref
 
 build/main.elf: ${OBJECTS}
-	${AVRCXX} ${CXXFLAGS} -o $@ $^ ${LDFLAGS}
+	${AVRCC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 	@echo
 	@avr-size --format=avr --mcu=${MCU} $@
 
@@ -63,12 +51,6 @@ flash: program
 
 program: build/main.hex #main.eep
 	${AVRFLASH} -p ${MCU} -c ${AVRDUDE_PROGRAMMER} ${AVRFLAGS}
-
-secsize: build/main.elf
-	${AVROBJDUMP} -hw -j.text -j.bss -j.data $<
-
-funsize: build/main.elf
-	${AVRNM} --print-size --size-sort $<
 
 clean:
 	rm -rf build
