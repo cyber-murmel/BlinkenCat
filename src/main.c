@@ -1,9 +1,13 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <avr/eeprom.h> 
+#include <avr/sleep.h> 
 #include <string.h>
 #include "led.h"
 #include "color.h"
 #include "cat.h"
+
+#define EEPROM_ADDR (0)
 
 typedef enum {
     OFF,
@@ -33,6 +37,15 @@ void init_interrups(void) {
 }
 
 int main(void) {
+    /* When reset, read whether program shall be run */
+    uint8_t run = eeprom_read_byte (EEPROM_ADDR);
+    /* invert value and write back to eeprom */
+    eeprom_write_byte (EEPROM_ADDR, run ? 0 : 1);
+    if(!run) {
+        /* disable all interrupts and go to sleep */
+        cli();
+        sleep_mode();
+    }
     uint16_t hue = 0;
     hsb_t hsb = {.hsb_struct = {0, 100, 100}};
     rgb_t rgb;

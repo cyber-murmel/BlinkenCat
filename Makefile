@@ -1,5 +1,5 @@
 MCU ?= attiny85
-AVRDUDE_PROGRAMMER ?= stk500v2
+AVRDUDE_PROGRAMMER ?= usbasp
 PORT ?= /dev/ttyUSB0
 
 AVRCC ?= avr-gcc
